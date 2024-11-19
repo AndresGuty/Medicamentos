@@ -1,16 +1,23 @@
 # Importar las bibliotecas necesarias
 import datetime
 import json
+import time
+
+
+
 
 # Clase para manejar la información del medicamento
 class Medicamento:
-    def __init__(self, nombre, dosis, horario):
+    def __init__(self, nombre, dosis, horario, tomado=False):
         self.nombre = nombre  # Nombre del medicamento
         self.dosis = dosis  # Dosis del medicamento
         self.horario = horario  # Horario para tomar el medicamento
+        self.tomado = tomado  # Estado de si se ha tomado o no
 
     def __str__(self):
-        return f"{self.nombre} - Dosis: {self.dosis}, Horario: {self.horario}"
+        estado = "Tomado" if self.tomado else "No tomado"
+        return f"{self.nombre} - Dosis: {self.dosis}, Horario: {self.horario}, Estado: {estado}"
+
 
 # Clase para el sistema de seguimiento de medicamentos
 class SeguimientoMedicamentos:
@@ -29,13 +36,13 @@ class SeguimientoMedicamentos:
                     self.medicamentos.append(Medicamento(**data))
         except FileNotFoundError:
             self.medicamentos = []
-            
+
     def grabar_data(self):
-        result = map(lambda x: { 
+        result = map(lambda x: {
             **x.__dict__,
             "horario": x.horario.strftime('%H:%M')
         }, self.medicamentos)
-        
+
         with open(self.ruta, "w") as archivo:
             json_object = json.dumps(list(result), indent=2)
             archivo.write(json_object)
@@ -91,15 +98,39 @@ class SeguimientoMedicamentos:
                 return
         print(f"Medicamento {nombre} no encontrado.")
 
+    def marcar_tomado(self, nombre):
+        for med in self.medicamentos:
+            if med.nombre.lower() == nombre.lower():
+                med.tomado = True
+                self.grabar_data()
+                print(f"✅ {med.nombre} marcado como tomado.")
+                return
+        print(f"Medicamento {nombre} no encontrado.")
+
+    def medicamentos_no_tomados(self):
+        no_tomados = [med for med in self.medicamentos if not med.tomado]
+        if no_tomados:
+            print("🚨 Medicamentos no tomados:")
+            for med in no_tomados:
+                print(med)
+        else:
+            print("🎉 Todos los medicamentos han sido tomados.")
+
     def recordatorio(self):
-        ahora = datetime.datetime.now().time()
+        ahora = datetime.datetime.now()
         margen_tolerancia = datetime.timedelta(minutes=5)
         for med in self.medicamentos:
             inicio = (datetime.datetime.combine(datetime.date.today(), med.horario) - margen_tolerancia).time()
             fin = (datetime.datetime.combine(datetime.date.today(), med.horario) + margen_tolerancia).time()
-            if inicio <= ahora <= fin:
-                print(f"¡Es hora de tomar tu {med.nombre}!")
-    
+            if inicio <= ahora.time() <= fin and not med.tomado:
+                print(f"⏰ ¡Es hora de tomar tu {med.nombre}!")
+                for i in range(5):
+                    if med.tomado:
+                        break
+                    print(f"🔔 Recordatorio: Toma el medicamento {med.nombre}.")
+                    time.sleep(60)
+
+
 # Función para preguntar si el usuario desea continuar
 def continuar_o_salir():
     while True:
@@ -112,6 +143,7 @@ def continuar_o_salir():
         else:
             print("Opción no válida. Por favor, ingresa 's' o 'n'.")
 
+
 # Función principal
 def main():
     sistema = SeguimientoMedicamentos()
@@ -123,8 +155,10 @@ def main():
         print("4. Eliminar medicamento")
         print("5. Buscar medicamento")
         print("6. Comprobar recordatorios")
-        print("7. Inicializar medicamentos")
-        print("8. Salir")
+        print("7. Ver medicamentos no tomados")
+        print("8. Marcar medicamento como tomado")
+        print("9. Inicializar medicamentos")
+        print("10. Salir")
         opcion = input("Elige una opción: ")
 
         if opcion == "1":
@@ -159,18 +193,25 @@ def main():
             sistema.recordatorio()
 
         elif opcion == "7":
-            sistema.inicializar()
+            sistema.medicamentos_no_tomados()
 
         elif opcion == "8":
+            nombre = input("Ingrese el nombre del medicamento a marcar como tomado: ")
+            sistema.marcar_tomado(nombre)
+
+        elif opcion == "9":
+            sistema.inicializar()
+
+        elif opcion == "10":
             print("Saliendo del sistema...")
             break
 
         else:
             print("Opción no válida. Por favor, elige otra opción.")
 
-        # Preguntar si el usuario desea continuar
         if not continuar_o_salir():
             break
+
 
 # Ejecutar el programa
 if __name__ == "__main__":
