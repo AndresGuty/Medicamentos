@@ -10,6 +10,7 @@ Original file is located at
 import datetime
 import json
 import time
+from datetime import date
 
 
 # Clase para manejar la información del medicamento
@@ -228,9 +229,9 @@ def main():
             nombre = input("Medicamento: ")
             dosis = input("Dosis: ")
             cantidad = input("Cantidad: ")
-            regularidad = input("Regularidad (Horas): ")
+            regularidad = input("Tomar cada [{}]: ".format(8))
             while True:
-                fecha_txt = input("Fecha inicio (YYYY-MM-DD): ")
+                fecha_txt = input("Fecha inicio [{}]: ".format(date.today()))
                 try:
                     fecha_inicial = datetime.datetime.strptime(fecha_txt, "%Y-%m-%d").time()
                     break
