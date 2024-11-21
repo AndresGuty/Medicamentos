@@ -10,7 +10,8 @@ Original file is located at
 import datetime
 import json
 import time
-from datetime import date
+from datetime import date, timedelta
+from capturaDatos import  *
 
 
 # Clase para manejar la información del medicamento
@@ -38,7 +39,7 @@ class SeguimientoMedicamentos:
                 for row in result:
                     data = {
                         **row,
-                        "horario": datetime.datetime.strptime(row["horario"], "%H:%M").time()
+                        "horario": datetime.datetime.strptime(row["horario"], "%Y-%m-%d %H:%M")
                     }
                     self.medicamentos.append(Medicamento(**data))
         except FileNotFoundError:
@@ -47,7 +48,7 @@ class SeguimientoMedicamentos:
     def grabar_data(self):
         result = map(lambda x: {
             **x.__dict__,
-            "horario": x.horario.strftime('%H:%M')
+            "horario": x.horario.strftime('%Y-%m-%d %H:%M')
         }, self.medicamentos)
 
         with open(self.ruta, "w") as archivo:
@@ -62,7 +63,6 @@ class SeguimientoMedicamentos:
     def agregar_medicamento(self, medicamento):
         self.medicamentos.append(medicamento)
         self.grabar_data()
-        print(f"Medicamento {medicamento.nombre} agregado correctamente.")
 
     def inicializar(self):
         self.medicamentos = []
@@ -139,8 +139,8 @@ class SeguimientoMedicamentos:
 
         for med in self.medicamentos:
             # Calcular el rango de tiempo para el recordatorio
-            inicio = (datetime.datetime.combine(datetime.date.today(), med.horario) - margen_tolerancia).time()
-            fin = (datetime.datetime.combine(datetime.date.today(), med.horario) + margen_tolerancia).time()
+            inicio = (med.horario - margen_tolerancia).time()
+            fin = (med.horario + margen_tolerancia).time()
 
             # Verificar si el medicamento está dentro del rango de tiempo y no ha sido tomado
             if inicio <= ahora.time() <= fin and not med.tomado:
@@ -189,13 +189,18 @@ def main():
             dosis = input("Ingrese la dosis: ")
             while True:
                 horario_str = input("Ingrese el horario (HH:MM) para tomar el medicamento: ")
+                
                 try:
-                    horario = datetime.datetime.strptime(horario_str, "%H:%M").time()
+                    now = datetime.datetime.now()
+                    horario = datetime.datetime.strptime(f"{now.strftime('%Y-%m-%d')} {horario_str}", "%Y-%m-%d %H:%M")
                     break
-                except ValueError:
+                except ValueError as e:
+                    print(e)
                     print("Formato de hora incorrecto. Intente nuevamente en formato HH:MM.")
             medicamento = Medicamento(nombre, dosis, horario)
             sistema.agregar_medicamento(medicamento)
+            print(f"Medicamento {medicamento.nombre} agregado correctamente.")
+            
 
         elif opcion == "2":
             sistema.mostrar_medicamentos()
@@ -226,25 +231,28 @@ def main():
             sistema.inicializar()
 
         elif opcion == "10":
-            nombre = input("Medicamento: ")
-            dosis = input("Dosis: ")
-            cantidad = input("Cantidad: ")
-            regularidad = input("Tomar cada [{}]: ".format(8))
-            while True:
-                fecha_txt = input("Fecha inicio [{}]: ".format(date.today()))
-                try:
-                    fecha_inicial = datetime.datetime.strptime(fecha_txt, "%Y-%m-%d").time()
-                    break
-                except ValueError:
-                    print("Formato de fecha inicio incorrecto. Intente nuevamente en formato YYYY-MM-DD.")
-
-            while True:
-                hora_txt = input("Hora inicio (HH:MM): ")
-                try:
-                    hora_inicial = datetime.datetime.strptime(hora_txt, "%H:%M").time()
-                    break
-                except ValueError:
-                    print("Formato de hora inicio incorrecto. Intente nuevamente en formato HH:MM.")
+            formulario = Captura()
+            now = datetime.datetime.now()
+            campos = [
+                ("Medicamento", "medicamento", Tipo.TEXTO, None),
+                ("Dosis", "dosis", Tipo.TEXTO, None),
+                ("Cantidad", "cantidad", Tipo.NUMERICO, None),
+                ("Tomar cada", "regularidad", Tipo.NUMERICO, None),
+                ("Fecha Inicial", "fecha_inicial", Tipo.FECHA, now.strftime('%Y-%m-%d')),
+                ("Hora Inicial", "hora_inicial", Tipo.HORA, now.strftime('%H:%M'))
+            ]
+            for item in campos:
+                campo = Field(*item)
+                formulario.add(campo)
+            
+            values = formulario.ejecutar()
+            start = datetime.datetime.strptime("{} {}".format(values['fecha_inicial'], values['hora_inicial']), "%Y-%m-%d %H:%M")
+            for n in range(int(values["cantidad"])):
+                horario = start
+                parametros = (values["medicamento"], values["dosis"], horario)
+                medicamento = Medicamento(*parametros)
+                sistema.agregar_medicamento(medicamento)
+                start += timedelta(hours=int(values["regularidad"]))
                     
                     
         elif opcion == "11":
