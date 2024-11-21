@@ -180,7 +180,7 @@ def main():
         print("7. Ver medicamentos no tomados")
         print("8. Marcar medicamento como tomado")
         print("9. Inicializar medicamentos")
-        print("10. Crear programacion")
+        print("10. Crear Tratamiento")
         print("11. Salir")
         opcion = input("Elige una opción: ")
 
@@ -237,7 +237,7 @@ def main():
                 ("Medicamento", "medicamento", Tipo.TEXTO, None),
                 ("Dosis", "dosis", Tipo.TEXTO, None),
                 ("Cantidad", "cantidad", Tipo.NUMERICO, None),
-                ("Tomar cada", "regularidad", Tipo.NUMERICO, None),
+                ("Tomar cada (Horas)", "regularidad", Tipo.NUMERICO, None),
                 ("Fecha Inicial", "fecha_inicial", Tipo.FECHA, now.strftime('%Y-%m-%d')),
                 ("Hora Inicial", "hora_inicial", Tipo.HORA, now.strftime('%H:%M'))
             ]

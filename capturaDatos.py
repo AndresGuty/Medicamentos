@@ -48,7 +48,7 @@ class Captura:
                 if field.default is not None:
                     texto += " [{}]"
                     
-                texto +=" :"
+                texto +=":"
                 self.values[field.id] = input(texto.format(field.titulo, field.default))
                 try:
 
